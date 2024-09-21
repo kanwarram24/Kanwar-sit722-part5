@@ -20,6 +20,18 @@ jobs:
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: 1.5.6
+            
+      # Install Azure CLI
+      - name: Install Azure CLI
+        uses: azure/cli@v1
+        with:
+          azcliversion: '2.30.0'
+
+      # Login to Azure
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       # Initialize Terraform
       - name: Terraform Init
@@ -33,18 +45,6 @@ jobs:
       - name: Get ACR URL
         id: acr_url
         run: echo "::set-output name=acr_url::$(terraform output -raw container_registry_url)"
-
-      # Install Azure CLI
-      - name: Install Azure CLI
-        uses: azure/cli@v1
-        with:
-          azcliversion: '2.30.0'
-
-      # Login to Azure
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       # Get the ACR admin credentials (username and password)
       - name: Get ACR Credentials
