@@ -1,1 +1,8 @@
-# Your Solution
+#!/bin/bash
+
+set -u
+: "$CONTAINER_REGISTRY"
+: "$VERSION"
+
+# Use kubectl to deploy the services
+envsubst < ./kubernetes/deployment.yml | kubectl apply -f -
