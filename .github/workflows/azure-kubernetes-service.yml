@@ -1,0 +1,90 @@
+name: Deploy to AKS
+
+on:
+#Not Doing on push#
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      VERSION: ${{ github.sha }}
+
+    steps:
+      # Checkout the code
+      - uses: actions/checkout@v3
+
+      # Set up Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.5.6
+
+      # Initialize Terraform
+      - name: Terraform Init
+        run: terraform init
+
+      # Apply Terraform to create infrastructure (including ACR and AKS)
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      # Get the container registry URL from Terraform output
+      - name: Get ACR URL
+        id: acr_url
+        run: echo "::set-output name=acr_url::$(terraform output -raw container_registry_url)"
+
+      # Install Azure CLI
+      - name: Install Azure CLI
+        uses: azure/cli@v1
+        with:
+          azcliversion: '2.30.0'
+
+      # Login to Azure
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Get the ACR admin credentials (username and password)
+      - name: Get ACR Credentials
+        id: acr_creds
+        run: |
+          ACR_USERNAME=$(az acr credential show --name $(terraform output -raw container_registry_url) --query "username" -o tsv)
+          ACR_PASSWORD=$(az acr credential show --name $(terraform output -raw container_registry_url) --query "passwords[0].value" -o tsv)
+          echo "::set-output name=acr_username::$ACR_USERNAME"
+          echo "::set-output name=acr_password::$ACR_PASSWORD"
+
+      # Get kubeconfig for AKS
+      - name: Get kubeconfig for AKS
+        run: |
+          az aks get-credentials --resource-group $(terraform output -raw resource_group_name) --name $(terraform output -raw kubernetes_cluster_name)
+
+      # Set up kubectl by copying the dynamically retrieved kubeconfig
+      - name: Set up Kubectl
+        run: |
+          mkdir -p ~/.kube
+          cp $HOME/.kube/config ~/.kube/config
+
+      # Build Docker images
+      - name: Build Docker Image
+        run: ./scripts/build-image.sh
+        env:
+          CONTAINER_REGISTRY: ${{ steps.acr_url.outputs.acr_url }}
+          VERSION: ${{ github.sha }}
+
+      # Push Docker images to ACR
+      - name: Push Docker Image
+        run: ./scripts/push-image.sh
+        env:
+          CONTAINER_REGISTRY: ${{ steps.acr_url.outputs.acr_url }}
+          VERSION: ${{ github.sha }}
+          REGISTRY_UN: ${{ steps.acr_creds.outputs.acr_username }}
+          REGISTRY_PW: ${{ steps.acr_creds.outputs.acr_password }}
+
+      # Deploy to Kubernetes
+      - name: Deploy to Kubernetes
+        run: ./scripts/deploy.sh
+        env:
+          CONTAINER_REGISTRY: ${{ steps.acr_url.outputs.acr_url }}
+          VERSION: ${{ github.sha }}
