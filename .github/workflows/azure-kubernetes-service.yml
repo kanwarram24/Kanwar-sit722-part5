@@ -47,13 +47,6 @@ jobs:
           echo "::set-output name=acr_username::$(terraform output -raw acr_username)"
           echo "::set-output name=acr_password::$(terraform output -raw acr_password)"
 
-      # Get kubeconfig for AKS in base64 format
-      - name: Get kubeconfig for AKS
-        id: kubeconfig
-        run: |
-          echo "$(terraform output -raw aks_kubeconfig)" | base64 --decode > $HOME/.kube/config
-          echo "Kubeconfig written to $HOME/.kube/config"
-
       # Build Docker images
       - name: Build Docker Image
         run: ./scripts/build-image.sh
