@@ -1,7 +1,7 @@
 name: Deploy to AKS
 
 on:
-#Not Doing on push#
+  # Trigger manually
   workflow_dispatch:
 
 jobs:
@@ -38,14 +38,17 @@ jobs:
       # Get the container registry URL from Terraform output
       - name: Get ACR URL
         id: acr_url
-        run: echo "::set-output name=acr_url::$(terraform output -raw container_registry_url)"
+        run: |
+          ACR_NAME=$(terraform output -raw container_registry_url | cut -d'.' -f1)
+          echo "::set-output name=acr_url::$ACR_NAME"
 
       # Get the ACR admin credentials (username and password)
       - name: Get ACR Credentials
         id: acr_creds
         run: |
-          ACR_USERNAME=$(az acr credential show --name $(terraform output -raw container_registry_url) --query "username" -o tsv)
-          ACR_PASSWORD=$(az acr credential show --name $(terraform output -raw container_registry_url) --query "passwords[0].value" -o tsv)
+          ACR_NAME=$(terraform output -raw container_registry_url | cut -d'.' -f1)
+          ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query "username" -o tsv)
+          ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv)
           echo "::set-output name=acr_username::$ACR_USERNAME"
           echo "::set-output name=acr_password::$ACR_PASSWORD"
 
