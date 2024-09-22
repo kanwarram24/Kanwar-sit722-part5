@@ -34,18 +34,12 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
 
-      # Get ACR Login URL from Terraform output and store it in GitHub environment variables
-      - name: Get ACR Login URL
-        id: acr_url
-        run: echo "acr_login_url=$(terraform output -raw acr_login_url | grep -v "::debug")" >> $GITHUB_ENV
-
-
-      # Get ACR Credentials (username and password) from Terraform output and store them in environment variables
-      - name: Get ACR Credentials
-        id: acr_creds
+      # Get ACR Login URL, Username, and Password from Terraform output and store them in environment variables
+      - name: Get ACR Details
         run: |
-          echo "acr_username=$(terraform output -raw acr_username | grep -v "::debug")" >> $GITHUB_ENV
-          echo "acr_password=$(terraform output -raw acr_password | grep -v "::debug")" >> $GITHUB_ENV
+          echo "ACR_URL=$(terraform output -raw acr_login_url | tr -d '\r\n')" >> $GITHUB_ENV
+          echo "ACR_USERNAME=$(terraform output -raw acr_username | tr -d '\r\n')" >> $GITHUB_ENV
+          echo "ACR_PASSWORD=$(terraform output -raw acr_password | tr -d '\r\n')" >> $GITHUB_ENV
 
       # Make the build-image.sh script executable
       - name: Make build-image.sh executable
@@ -63,21 +57,21 @@ jobs:
       - name: Build Docker Image
         run: ./scripts/build-image.sh
         env:
-          CONTAINER_REGISTRY: ${{ env.acr_login_url }}
+          CONTAINER_REGISTRY: ${{ env.ACR_URL }}
           VERSION: ${{ github.sha }}
 
       # Push Docker images to ACR
       - name: Push Docker Image
         run: ./scripts/push-image.sh
         env:
-          CONTAINER_REGISTRY: ${{ env.acr_login_url }}
+          CONTAINER_REGISTRY: ${{ env.ACR_URL }}
           VERSION: ${{ github.sha }}
-          REGISTRY_UN: ${{ env.acr_username }}
-          REGISTRY_PW: ${{ env.acr_password }}
+          REGISTRY_UN: ${{ env.ACR_USERNAME }}
+          REGISTRY_PW: ${{ env.ACR_PASSWORD }}
 
       # Deploy to Kubernetes
       - name: Deploy to Kubernetes
         run: ./scripts/deploy.sh
         env:
-          CONTAINER_REGISTRY: ${{ env.acr_login_url }}
+          CONTAINER_REGISTRY: ${{ env.ACR_URL }}
           VERSION: ${{ github.sha }}
