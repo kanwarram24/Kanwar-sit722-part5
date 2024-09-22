@@ -8,12 +8,6 @@ jobs:
     name: Terraform actions
     runs-on: ubuntu-latest
 
-    
-    env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
     steps:
    
@@ -34,23 +28,23 @@ jobs:
 
     
     - name: Terraform Init
-      working-directory: ./scripts/terraform 
+      working-directory: ./scripts 
       run: terraform init -upgrade
 
     
     - name: Terraform Plan
-      working-directory: ./scripts/terraform
+      working-directory: ./scripts
       run: terraform plan
 
    
     - name: Terraform Apply
-      working-directory: ./scripts/terraform
+      working-directory: ./scripts
       run: terraform apply -auto-approve
 
    
     - name: Get Terraform Outputs
       id: outputs
-      working-directory: ./scripts/terraform
+      working-directory: ./scripts
       run: |
         echo "acr_login_url=$(terraform output -raw acr_login_url | grep -v "::debug")" >> $GITHUB_ENV
         echo "acr_username=$(terraform output -raw acr_username | grep -v "::debug")" >> $GITHUB_ENV
