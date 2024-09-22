@@ -35,33 +35,24 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
 
-      # Get the container registry URL from Terraform output
-      - name: Get ACR URL
+      # Get ACR Login URL from Terraform output
+      - name: Get ACR Login URL
         id: acr_url
-        run: |
-          ACR_NAME=$(terraform output -raw container_registry_url | cut -d'.' -f1)
-          echo "::set-output name=acr_url::$ACR_NAME"
+        run: echo "::set-output name=acr_url::$(terraform output -raw acr_login_url)"
 
-      # Get the ACR admin credentials (username and password)
+      # Get ACR Credentials (username and password) from Terraform output
       - name: Get ACR Credentials
         id: acr_creds
         run: |
-          ACR_NAME=$(terraform output -raw container_registry_url | cut -d'.' -f1)
-          ACR_USERNAME=$(az acr credential show --name $ACR_NAME --query "username" -o tsv)
-          ACR_PASSWORD=$(az acr credential show --name $ACR_NAME --query "passwords[0].value" -o tsv)
-          echo "::set-output name=acr_username::$ACR_USERNAME"
-          echo "::set-output name=acr_password::$ACR_PASSWORD"
+          echo "::set-output name=acr_username::$(terraform output -raw acr_username)"
+          echo "::set-output name=acr_password::$(terraform output -raw acr_password)"
 
-      # Get kubeconfig for AKS
+      # Get kubeconfig for AKS in base64 format
       - name: Get kubeconfig for AKS
+        id: kubeconfig
         run: |
-          az aks get-credentials --resource-group $(terraform output -raw resource_group_name) --name $(terraform output -raw kubernetes_cluster_name)
-
-      # Set up kubectl by copying the dynamically retrieved kubeconfig
-      - name: Set up Kubectl
-        run: |
-          mkdir -p ~/.kube
-          cp $HOME/.kube/config ~/.kube/config
+          echo "$(terraform output -raw aks_kubeconfig)" | base64 --decode > $HOME/.kube/config
+          echo "Kubeconfig written to $HOME/.kube/config"
 
       # Build Docker images
       - name: Build Docker Image
