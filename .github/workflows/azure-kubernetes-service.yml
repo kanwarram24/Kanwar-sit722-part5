@@ -14,36 +14,6 @@ jobs:
       # Checkout the code
       - uses: actions/checkout@v3
 
-      # Set up Terraform
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.5.6
-
-      # Login to Azure
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      # Initialize Terraform
-      - name: Terraform Init
-        run: terraform init
-
-      # Apply Terraform to create infrastructure (including ACR and AKS)
-      - name: Terraform Apply
-        run: terraform apply -auto-approve
-
-      # Get ACR Login URL, Username, and Password from Terraform output and store them in environment variables
-      - name: Get ACR Details
-        run: |
-          ACR_URL=$(terraform output -raw acr_login_url 2>/dev/null | grep -v "::" | tr -d '\r\n')
-          ACR_USERNAME=$(terraform output -raw acr_username 2>/dev/null | grep -v "::" | tr -d '\r\n')
-          ACR_PASSWORD=$(terraform output -raw acr_password 2>/dev/null | grep -v "::" | tr -d '\r\n')
-          echo "ACR_URL=$ACR_URL" >> $GITHUB_ENV
-          echo "ACR_USERNAME=$ACR_USERNAME" >> $GITHUB_ENV
-          echo "ACR_PASSWORD=$ACR_PASSWORD" >> $GITHUB_ENV
-
       # Make the build-image.sh script executable
       - name: Make build-image.sh executable
         run: chmod +x ./scripts/build-image.sh
@@ -59,22 +29,11 @@ jobs:
       # Build Docker images
       - name: Build Docker Image
         run: ./scripts/build-image.sh
-        env:
-          CONTAINER_REGISTRY: ${{ env.ACR_URL }}
-          VERSION: ${{ github.sha }}
 
       # Push Docker images to ACR
       - name: Push Docker Image
         run: ./scripts/push-image.sh
-        env:
-          CONTAINER_REGISTRY: ${{ env.ACR_URL }}
-          VERSION: ${{ github.sha }}
-          REGISTRY_UN: ${{ env.ACR_USERNAME }}
-          REGISTRY_PW: ${{ env.ACR_PASSWORD }}
 
       # Deploy to Kubernetes
       - name: Deploy to Kubernetes
         run: ./scripts/deploy.sh
-        env:
-          CONTAINER_REGISTRY: ${{ env.ACR_URL }}
-          VERSION: ${{ github.sha }}
