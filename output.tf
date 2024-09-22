@@ -23,3 +23,9 @@ output "kubernetes_cluster_name" {
 output "resource_group_name" {
   value = azurerm_resource_group.flixtube.name
 }
+
+# Outputs the AKS kubeconfig (sensitive)
+output "aks_kubeconfig" {
+  value     = base64encode(azurerm_kubernetes_cluster.cluster.kube_config_raw)
+  sensitive = true
+}
