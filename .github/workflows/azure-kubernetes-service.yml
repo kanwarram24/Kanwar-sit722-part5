@@ -37,9 +37,12 @@ jobs:
       # Get ACR Login URL, Username, and Password from Terraform output and store them in environment variables
       - name: Get ACR Details
         run: |
-          echo "ACR_URL=$(terraform output -raw acr_login_url | tr -d '\r\n')" >> $GITHUB_ENV
-          echo "ACR_USERNAME=$(terraform output -raw acr_username | tr -d '\r\n')" >> $GITHUB_ENV
-          echo "ACR_PASSWORD=$(terraform output -raw acr_password | tr -d '\r\n')" >> $GITHUB_ENV
+          ACR_URL=$(terraform output -raw acr_login_url 2>/dev/null | grep -v "::" | tr -d '\r\n')
+          ACR_USERNAME=$(terraform output -raw acr_username 2>/dev/null | grep -v "::" | tr -d '\r\n')
+          ACR_PASSWORD=$(terraform output -raw acr_password 2>/dev/null | grep -v "::" | tr -d '\r\n')
+          echo "ACR_URL=$ACR_URL" >> $GITHUB_ENV
+          echo "ACR_USERNAME=$ACR_USERNAME" >> $GITHUB_ENV
+          echo "ACR_PASSWORD=$ACR_PASSWORD" >> $GITHUB_ENV
 
       # Make the build-image.sh script executable
       - name: Make build-image.sh executable
