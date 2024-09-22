@@ -5,4 +5,4 @@ set -u
 : "$VERSION"
 
 # Use kubectl to deploy the services
-envsubst < ./kubernetes/deployment.yml | kubectl apply -f -
+envsubst < ./kubernetes/deployment.yaml | kubectl apply -f -
