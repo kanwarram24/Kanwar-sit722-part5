@@ -1,7 +1,6 @@
 name: Deploy to AKS
 
 on:
-  # Trigger manually
   workflow_dispatch:
 
 jobs:
@@ -46,6 +45,18 @@ jobs:
         run: |
           echo "::set-output name=acr_username::$(terraform output -raw acr_username)"
           echo "::set-output name=acr_password::$(terraform output -raw acr_password)"
+
+      # Make the build-image.sh script executable
+      - name: Make build-image.sh executable
+        run: chmod +x ./scripts/build-image.sh
+
+      # Make the push-image.sh script executable
+      - name: Make push-image.sh executable
+        run: chmod +x ./scripts/push-image.sh
+
+      # Make the deploy.sh script executable
+      - name: Make deploy.sh executable
+        run: chmod +x ./scripts/deploy.sh
 
       # Build Docker images
       - name: Build Docker Image
